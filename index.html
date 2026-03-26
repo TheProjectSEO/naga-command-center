@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Naga City Emergency Command Center</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0a0e17;
+            --surface: #111827;
+            --surface-2: #1a2332;
+            --border: #1e293b;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --red: #ef4444;
+            --orange: #f97316;
+            --yellow: #eab308;
+            --green: #22c55e;
+            --cyan: #06b6d4;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            background: var(--accent);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .header-title h1 {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .header-title p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-live {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--green);
+            font-weight: 500;
+        }
+
+        .status-live .dot {
+            width: 8px;
+            height: 8px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .clock {
+            font-size: 14px;
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-muted);
+        }
+
+        /* Alert Banner */
+        .alert-banner {
+            background: linear-gradient(90deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05));
+            border-bottom: 1px solid rgba(239,68,68,0.3);
+            padding: 10px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+        }
+
+        .alert-banner.level-5 { background: linear-gradient(90deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05)); border-color: rgba(239,68,68,0.3); }
+        .alert-banner.level-4 { background: linear-gradient(90deg, rgba(249,115,22,0.15), rgba(249,115,22,0.05)); border-color: rgba(249,115,22,0.3); }
+        .alert-banner.level-3 { background: linear-gradient(90deg, rgba(234,179,8,0.15), rgba(234,179,8,0.05)); border-color: rgba(234,179,8,0.3); }
+
+        .alert-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        .alert-badge.critical { background: var(--red); color: #fff; }
+        .alert-badge.high { background: var(--orange); color: #fff; }
+        .alert-badge.moderate { background: var(--yellow); color: #000; }
+
+        .alert-text { flex: 1; }
+        .alert-time { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+
+        /* Main Layout */
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            padding: 20px 24px;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        /* Stat Cards Row */
+        .stats-row {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .stat-card .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-card .change {
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .stat-card .change.up { color: var(--red); }
+        .stat-card .change.down { color: var(--green); }
+        .stat-card .change.neutral { color: var(--text-muted); }
+
+        /* Panels */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-header h2 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .panel-header .badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--surface-2);
+            color: var(--text-muted);
+        }
+
+        .panel-body {
+            padding: 0;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+
+        .panel-body::-webkit-scrollbar { width: 4px; }
+        .panel-body::-webkit-scrollbar-track { background: transparent; }
+        .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        /* Severity Scale */
+        .severity-panel { grid-column: 1 / -1; }
+
+        .severity-scale {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0;
+        }
+
+        .severity-level {
+            padding: 16px;
+            text-align: center;
+            border-right: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .severity-level:last-child { border-right: none; }
+        .severity-level:hover { background: var(--surface-2); }
+
+        .severity-level.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .severity-level .level-num {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .severity-level .level-name {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 8px;
+        }
+
+        .severity-level .level-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .sev-1 .level-num, .sev-1 .level-name { color: var(--green); }
+        .sev-1.active::after { background: var(--green); }
+        .sev-2 .level-num, .sev-2 .level-name { color: var(--cyan); }
+        .sev-2.active::after { background: var(--cyan); }
+        .sev-3 .level-num, .sev-3 .level-name { color: var(--yellow); }
+        .sev-3.active::after { background: var(--yellow); }
+        .sev-4 .level-num, .sev-4 .level-name { color: var(--orange); }
+        .sev-4.active::after { background: var(--orange); }
+        .sev-5 .level-num, .sev-5 .level-name { color: var(--red); }
+        .sev-5.active::after { background: var(--red); }
+
+        /* Incident List */
+        .incident-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .incident-row:hover { background: var(--surface-2); }
+        .incident-row:last-child { border-bottom: none; }
+
+        .incident-sev {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .incident-sev.s1 { background: var(--green); }
+        .incident-sev.s2 { background: var(--cyan); }
+        .incident-sev.s3 { background: var(--yellow); }
+        .incident-sev.s4 { background: var(--orange); }
+        .incident-sev.s5 { background: var(--red); }
+
+        .incident-info { flex: 1; min-width: 0; }
+        .incident-info .title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .incident-info .meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .incident-status {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .incident-status.responding { background: rgba(59,130,246,0.15); color: var(--accent); }
+        .incident-status.monitoring { background: rgba(234,179,8,0.15); color: var(--yellow); }
+        .incident-status.resolved { background: rgba(34,197,94,0.15); color: var(--green); }
+        .incident-status.escalated { background: rgba(239,68,68,0.15); color: var(--red); }
+
+        /* Resource Table */
+        .resource-row {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 16px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            align-items: center;
+        }
+
+        .resource-row:last-child { border-bottom: none; }
+
+        .resource-name { font-weight: 500; }
+        .resource-bar-wrap {
+            width: 80px;
+            height: 6px;
+            background: var(--surface-2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .resource-bar {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        .resource-pct {
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-muted);
+            text-align: right;
+            width: 36px;
+        }
+
+        /* Contact List */
+        .contact-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .contact-row:last-child { border-bottom: none; }
+
+        .contact-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--surface-2);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .contact-info { flex: 1; }
+        .contact-info .name { font-weight: 500; }
+        .contact-info .dept { font-size: 11px; color: var(--text-muted); }
+
+        .contact-phone {
+            font-variant-numeric: tabular-nums;
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .contact-phone:hover { text-decoration: underline; }
+
+        /* Weather Strip */
+        .weather-strip {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0;
+        }
+
+        .weather-strip .panel { border-radius: 0; border-right: none; }
+        .weather-strip .panel:first-child { border-radius: 10px 0 0 10px; }
+        .weather-strip .panel:last-child { border-radius: 0 10px 10px 0; border-right: 1px solid var(--border); }
+
+        .weather-item {
+            padding: 16px;
+            text-align: center;
+        }
+
+        .weather-item .wx-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .weather-item .wx-value {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .weather-item .wx-detail {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Activity Log */
+        .log-entry {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .log-entry:last-child { border-bottom: none; }
+
+        .log-entry .log-time {
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+            margin-right: 8px;
+        }
+
+        .log-entry .log-tag {
+            font-size: 10px;
+            padding: 1px 5px;
+            border-radius: 3px;
+            margin-right: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .log-tag.dispatch { background: rgba(59,130,246,0.15); color: var(--accent); }
+        .log-tag.alert { background: rgba(239,68,68,0.15); color: var(--red); }
+        .log-tag.update { background: rgba(34,197,94,0.15); color: var(--green); }
+        .log-tag.info { background: rgba(148,163,184,0.15); color: var(--text-muted); }
+
+        /* Full Width */
+        .full-width { grid-column: 1 / -1; }
+        .span-2 { grid-column: span 2; }
+
+        /* Report Form */
+        .report-section {
+            padding: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .form-group select,
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .form-group textarea { resize: vertical; min-height: 80px; }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-submit:hover { background: #2563eb; }
+
+        /* Emergency Banner */
+        .emergency-bar {
+            grid-column: 1 / -1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .emergency-bar .em-left h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .emergency-bar .em-left p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .emergency-bar .em-phone {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--red);
+            text-decoration: none;
+            letter-spacing: 0.02em;
+        }
+
+        .emergency-bar .em-phone:hover { text-decoration: underline; }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 24px;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            margin-top: 8px;
+        }
+
+        .footer a { color: var(--accent); text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main { grid-template-columns: 1fr 1fr; }
+            .stats-row { grid-template-columns: repeat(3, 1fr); }
+            .severity-scale { grid-template-columns: repeat(3, 1fr); }
+            .weather-strip { grid-template-columns: repeat(2, 1fr); }
+            .weather-strip .panel { border-radius: 0 !important; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+            .span-2 { grid-column: span 1; }
+        }
+
+        @media (max-width: 640px) {
+            .main { grid-template-columns: 1fr; padding: 12px; gap: 12px; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .severity-scale { grid-template-columns: 1fr; }
+            .weather-strip { grid-template-columns: 1fr; }
+            .header { padding: 12px 16px; }
+            .emergency-bar { flex-direction: column; text-align: center; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">NC</div>
+            <div class="header-title">
+                <h1>Naga City Emergency Command Center</h1>
+                <p>Central Command Center (COMCEN) &mdash; Disaster Risk Reduction &amp; Management</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="status-live"><span class="dot"></span> LIVE</div>
+            <div class="clock" id="clock"></div>
+        </div>
+    </div>
+
+    <div class="alert-banner level-5" id="alertBanner">
+        <span class="alert-badge critical">CRITICAL</span>
+        <span class="alert-text" id="alertText">Typhoon Signal No. 3 raised over Camarines Sur. Mandatory evacuation in low-lying barangays.</span>
+        <span class="alert-time" id="alertTime">2 min ago</span>
+    </div>
+
+    <div class="main">
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="label">Active Incidents</div>
+                <div class="value" style="color: var(--red);" id="statIncidents">12</div>
+                <div class="change up">+3 from yesterday</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Evacuees</div>
+                <div class="value" id="statEvacuees">2,847</div>
+                <div class="change up">+412 in 6h</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Responders Deployed</div>
+                <div class="value" style="color: var(--accent);">86</div>
+                <div class="change neutral">of 124 available</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Evacuation Centers</div>
+                <div class="value" style="color: var(--cyan);">8</div>
+                <div class="change neutral">3 near capacity</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Avg Response Time</div>
+                <div class="value" style="color: var(--green);">11m</div>
+                <div class="change down">-2m from avg</div>
+            </div>
+        </div>
+
+        <!-- Severity Scale -->
+        <div class="panel severity-panel">
+            <div class="panel-header">
+                <h2>Severity Classification</h2>
+                <span class="badge">Current Level: 4</span>
+            </div>
+            <div class="severity-scale">
+                <div class="severity-level sev-1">
+                    <div class="level-num">1</div>
+                    <div class="level-name">Advisory</div>
+                    <div class="level-desc">Minor incident. Normal operations. Monitoring only.</div>
+                </div>
+                <div class="severity-level sev-2">
+                    <div class="level-num">2</div>
+                    <div class="level-name">Watch</div>
+                    <div class="level-desc">Elevated risk. Standby teams alerted. Public advisory issued.</div>
+                </div>
+                <div class="severity-level sev-3">
+                    <div class="level-num">3</div>
+                    <div class="level-name">Warning</div>
+                    <div class="level-desc">Active threat. Partial evacuation. Response teams deployed.</div>
+                </div>
+                <div class="severity-level sev-4 active">
+                    <div class="level-num">4</div>
+                    <div class="level-name">Emergency</div>
+                    <div class="level-desc">Severe impact. Mass evacuation. All resources mobilized.</div>
+                </div>
+                <div class="severity-level sev-5">
+                    <div class="level-num">5</div>
+                    <div class="level-name">Catastrophic</div>
+                    <div class="level-desc">Extreme destruction. Regional/national assistance requested.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weather -->
+        <div class="weather-strip">
+            <div class="panel">
+                <div class="weather-item">
+                    <div class="wx-label">Wind Speed</div>
+                    <div class="wx-value">85 kph</div>
+                    <div class="wx-detail">Gusting to 120 kph</div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="weather-item">
+                    <div class="wx-label">Rainfall (24h)</div>
+                    <div class="wx-value">142 mm</div>
+                    <div class="wx-detail">Heavy — flood risk high</div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="weather-item">
+                    <div class="wx-label">River Level</div>
+                    <div class="wx-value" style="color: var(--orange);">8.2 m</div>
+                    <div class="wx-detail">Critical: 9.0 m</div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="weather-item">
+                    <div class="wx-label">Visibility</div>
+                    <div class="wx-value">1.2 km</div>
+                    <div class="wx-detail">Poor conditions</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Incidents -->
+        <div class="panel span-2">
+            <div class="panel-header">
+                <h2>Active Incidents</h2>
+                <span class="badge">12 open</span>
+            </div>
+            <div class="panel-body">
+                <div class="incident-row">
+                    <div class="incident-sev s5"></div>
+                    <div class="incident-info">
+                        <div class="title">Flash flooding — Brgy. Triangulo residential area</div>
+                        <div class="meta">Reported 14:32 &middot; 3 units dispatched</div>
+                    </div>
+                    <span class="incident-status escalated">Escalated</span>
+                </div>
+                <div class="incident-row">
+                    <div class="incident-sev s4"></div>
+                    <div class="incident-info">
+                        <div class="title">Road blocked — Maharlika Hwy landslide near km 432</div>
+                        <div class="meta">Reported 13:55 &middot; DPWH + rescue en route</div>
+                    </div>
+                    <span class="incident-status responding">Responding</span>
+                </div>
+                <div class="incident-row">
+                    <div class="incident-sev s4"></div>
+                    <div class="incident-info">
+                        <div class="title">Roof collapse — Naga City Science HS gymnasium</div>
+                        <div class="meta">Reported 13:20 &middot; 2 injuries, non-critical</div>
+                    </div>
+                    <span class="incident-status responding">Responding</span>
+                </div>
+                <div class="incident-row">
+                    <div class="incident-sev s3"></div>
+                    <div class="incident-info">
+                        <div class="title">Power outage — CBD and Peñafrancia district</div>
+                        <div class="meta">Reported 12:48 &middot; CASURECO II notified</div>
+                    </div>
+                    <span class="incident-status monitoring">Monitoring</span>
+                </div>
+                <div class="incident-row">
+                    <div class="incident-sev s3"></div>
+                    <div class="incident-info">
+                        <div class="title">Evacuation transport needed — Brgy. Pacol upland</div>
+                        <div class="meta">Reported 12:30 &middot; 45 families</div>
+                    </div>
+                    <span class="incident-status responding">Responding</span>
+                </div>
+                <div class="incident-row">
+                    <div class="incident-sev s3"></div>
+                    <div class="incident-info">
+                        <div class="title">Water contamination alert — Brgy. Concepcion Grande</div>
+                        <div class="meta">Reported 11:50 &middot; Water district sampling</div>
+                    </div>
+                    <span class="incident-status monitoring">Monitoring</span>
+                </div>
+                <div class="incident-row">
+                    <div class="incident-sev s2"></div>
+                    <div class="incident-info">
+                        <div class="title">Stranded motorists — Diversion Road underpass</div>
+                        <div class="meta">Reported 11:15 &middot; PNP + traffic mgmt</div>
+                    </div>
+                    <span class="incident-status responding">Responding</span>
+                </div>
+                <div class="incident-row">
+                    <div class="incident-sev s2"></div>
+                    <div class="incident-info">
+                        <div class="title">Downed electric post — Brgy. San Felipe</div>
+                        <div class="meta">Reported 10:40 &middot; Area cordoned</div>
+                    </div>
+                    <span class="incident-status monitoring">Monitoring</span>
+                </div>
+                <div class="incident-row">
+                    <div class="incident-sev s2"></div>
+                    <div class="incident-info">
+                        <div class="title">Medical assist — elderly evacuee, Jesse Robredo Coliseum</div>
+                        <div class="meta">Reported 10:22 &middot; EMT on site</div>
+                    </div>
+                    <span class="incident-status resolved">Resolved</span>
+                </div>
+                <div class="incident-row">
+                    <div class="incident-sev s1"></div>
+                    <div class="incident-info">
+                        <div class="title">Tree debris clearance — Elias Angeles St</div>
+                        <div class="meta">Reported 09:45 &middot; GSO crew assigned</div>
+                    </div>
+                    <span class="incident-status resolved">Resolved</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resource Availability -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Resource Status</h2>
+                <span class="badge">Real-time</span>
+            </div>
+            <div class="panel-body">
+                <div class="resource-row">
+                    <span class="resource-name">Fire Trucks</span>
+                    <div class="resource-bar-wrap"><div class="resource-bar" style="width: 40%; background: var(--orange);"></div></div>
+                    <span class="resource-pct">4/10</span>
+                </div>
+                <div class="resource-row">
+                    <span class="resource-name">Ambulances</span>
+                    <div class="resource-bar-wrap"><div class="resource-bar" style="width: 33%; background: var(--red);"></div></div>
+                    <span class="resource-pct">2/6</span>
+                </div>
+                <div class="resource-row">
+                    <span class="resource-name">Rescue Boats</span>
+                    <div class="resource-bar-wrap"><div class="resource-bar" style="width: 62%; background: var(--yellow);"></div></div>
+                    <span class="resource-pct">5/8</span>
+                </div>
+                <div class="resource-row">
+                    <span class="resource-name">Police Vehicles</span>
+                    <div class="resource-bar-wrap"><div class="resource-bar" style="width: 57%; background: var(--yellow);"></div></div>
+                    <span class="resource-pct">8/14</span>
+                </div>
+                <div class="resource-row">
+                    <span class="resource-name">Relief Packs</span>
+                    <div class="resource-bar-wrap"><div class="resource-bar" style="width: 72%; background: var(--green);"></div></div>
+                    <span class="resource-pct">72%</span>
+                </div>
+                <div class="resource-row">
+                    <span class="resource-name">Medical Kits</span>
+                    <div class="resource-bar-wrap"><div class="resource-bar" style="width: 58%; background: var(--yellow);"></div></div>
+                    <span class="resource-pct">58%</span>
+                </div>
+                <div class="resource-row">
+                    <span class="resource-name">Generators</span>
+                    <div class="resource-bar-wrap"><div class="resource-bar" style="width: 25%; background: var(--red);"></div></div>
+                    <span class="resource-pct">3/12</span>
+                </div>
+                <div class="resource-row">
+                    <span class="resource-name">Comm Radios</span>
+                    <div class="resource-bar-wrap"><div class="resource-bar" style="width: 80%; background: var(--green);"></div></div>
+                    <span class="resource-pct">80%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="panel span-2">
+            <div class="panel-header">
+                <h2>Activity Log</h2>
+                <span class="badge">Live feed</span>
+            </div>
+            <div class="panel-body">
+                <div class="log-entry">
+                    <span class="log-time">14:35</span>
+                    <span class="log-tag alert">ALERT</span>
+                    Flash flood water level rising in Triangulo — requesting additional pumps
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">14:32</span>
+                    <span class="log-tag dispatch">DISPATCH</span>
+                    BFP Unit 3 + MDRRMO Rescue Team A deployed to Triangulo
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">14:20</span>
+                    <span class="log-tag update">UPDATE</span>
+                    Maharlika Hwy landslide — heavy equipment ETA 45 mins from DPWH District Office
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">14:10</span>
+                    <span class="log-tag info">INFO</span>
+                    PAGASA Advisory: Typhoon eye wall expected to make landfall Camarines Sur coast 18:00H
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">13:55</span>
+                    <span class="log-tag dispatch">DISPATCH</span>
+                    PNP patrol units rerouting traffic from Maharlika Hwy to Diversion Road
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">13:48</span>
+                    <span class="log-tag update">UPDATE</span>
+                    Jesse Robredo Coliseum evacuation center at 78% capacity (1,240 / 1,600)
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">13:30</span>
+                    <span class="log-tag alert">ALERT</span>
+                    Signal No. 3 upgraded — all outdoor operations require authorization from Incident Commander
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">13:20</span>
+                    <span class="log-tag dispatch">DISPATCH</span>
+                    EMT + structural assessment team to Naga Science HS
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">13:05</span>
+                    <span class="log-tag info">INFO</span>
+                    All city schools confirmed suspended. Teachers assisting in evacuation centers.
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">12:50</span>
+                    <span class="log-tag update">UPDATE</span>
+                    CASURECO II: estimated 6-8 hours for power restoration CBD area
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">12:30</span>
+                    <span class="log-tag dispatch">DISPATCH</span>
+                    2 rescue boats + transport truck to Brgy. Pacol for upland evacuation
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">12:15</span>
+                    <span class="log-tag info">INFO</span>
+                    Mayor authorized release of additional 500 relief packs from emergency stockpile
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Contacts -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Emergency Contacts</h2>
+            </div>
+            <div class="panel-body">
+                <div class="contact-row">
+                    <div class="contact-icon">C</div>
+                    <div class="contact-info">
+                        <div class="name">Central Command (COMCEN)</div>
+                        <div class="dept">24/7 Operations</div>
+                    </div>
+                    <a class="contact-phone" href="tel:09632209700">0963-220-9700</a>
+                </div>
+                <div class="contact-row">
+                    <div class="contact-icon">F</div>
+                    <div class="contact-info">
+                        <div class="name">Bureau of Fire Protection</div>
+                        <div class="dept">Naga City Fire Station</div>
+                    </div>
+                    <a class="contact-phone" href="tel:054-4721273">054-472-1273</a>
+                </div>
+                <div class="contact-row">
+                    <div class="contact-icon">P</div>
+                    <div class="contact-info">
+                        <div class="name">PNP — Naga City</div>
+                        <div class="dept">Police Station 1</div>
+                    </div>
+                    <a class="contact-phone" href="tel:054-4731424">054-473-1424</a>
+                </div>
+                <div class="contact-row">
+                    <div class="contact-icon">H</div>
+                    <div class="contact-info">
+                        <div class="name">Bicol Medical Center</div>
+                        <div class="dept">Emergency Room</div>
+                    </div>
+                    <a class="contact-phone" href="tel:054-4721261">054-472-1261</a>
+                </div>
+                <div class="contact-row">
+                    <div class="contact-icon">R</div>
+                    <div class="contact-info">
+                        <div class="name">Philippine Red Cross</div>
+                        <div class="dept">Camarines Sur Chapter</div>
+                    </div>
+                    <a class="contact-phone" href="tel:054-4736122">054-473-6122</a>
+                </div>
+                <div class="contact-row">
+                    <div class="contact-icon">N</div>
+                    <div class="contact-info">
+                        <div class="name">NDRRMC Hotline</div>
+                        <div class="dept">National Response</div>
+                    </div>
+                    <a class="contact-phone" href="tel:911">911</a>
+                </div>
+                <div class="contact-row">
+                    <div class="contact-icon">E</div>
+                    <div class="contact-info">
+                        <div class="name">CASURECO II</div>
+                        <div class="dept">Power Emergency</div>
+                    </div>
+                    <a class="contact-phone" href="tel:054-4732148">054-473-2148</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Call Banner -->
+        <div class="emergency-bar">
+            <div class="em-left">
+                <h3>Need Immediate Assistance?</h3>
+                <p>Call the Central Command Center (COMCEN) — available 24/7 for emergency response, disaster management, and related services.</p>
+            </div>
+            <a class="em-phone" href="tel:09632209700">0963-220-9700</a>
+        </div>
+
+        <!-- Report Incident -->
+        <div class="panel full-width">
+            <div class="panel-header">
+                <h2>Report an Incident</h2>
+                <span class="badge">Public submission</span>
+            </div>
+            <div class="report-section">
+                <form id="reportForm" onsubmit="submitReport(event)">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                        <div class="form-group">
+                            <label>Incident Type</label>
+                            <select required>
+                                <option value="">Select type</option>
+                                <option>Flooding</option>
+                                <option>Landslide</option>
+                                <option>Structural Damage</option>
+                                <option>Road Blockage</option>
+                                <option>Fire</option>
+                                <option>Medical Emergency</option>
+                                <option>Power/Utility Failure</option>
+                                <option>Stranded Persons</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Severity</label>
+                            <select required>
+                                <option value="">Estimate severity</option>
+                                <option>1 — Advisory (minor)</option>
+                                <option>2 — Watch (moderate)</option>
+                                <option>3 — Warning (serious)</option>
+                                <option>4 — Emergency (severe)</option>
+                                <option>5 — Catastrophic (life-threatening)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Your Contact Number</label>
+                            <input type="tel" placeholder="09XX-XXX-XXXX">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Location (Barangay / Landmark)</label>
+                        <input type="text" placeholder="e.g. Brgy. Triangulo, near Naga City Hall" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea placeholder="Describe what happened, number of people affected, immediate needs..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit">Submit Incident Report</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Naga City Emergency Command Center &mdash; City Disaster Risk Reduction and Management Office (CDRRMO)</p>
+        <p style="margin-top: 4px;"><a href="http://www2.naga.gov.ph">www2.naga.gov.ph</a> &middot; Naga City, Camarines Sur, Philippines</p>
+    </div>
+
+    <script>
+        // Live clock
+        function updateClock() {
+            const now = new Date();
+            const opts = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Manila' };
+            document.getElementById('clock').textContent = now.toLocaleTimeString('en-PH', opts) + ' PHT';
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Form submission
+        function submitReport(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('.btn-submit');
+            btn.textContent = 'Submitted — COMCEN will contact you';
+            btn.style.background = '#22c55e';
+            btn.disabled = true;
+            setTimeout(() => {
+                btn.textContent = 'Submit Incident Report';
+                btn.style.background = '';
+                btn.disabled = false;
+                e.target.reset();
+            }, 4000);
+        }
+
+        // Simulate alert time update
+        let alertMinutes = 2;
+        setInterval(() => {
+            alertMinutes++;
+            document.getElementById('alertTime').textContent = alertMinutes + ' min ago';
+        }, 60000);
+    </script>
+</body>
+</html>
